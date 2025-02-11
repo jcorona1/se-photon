@@ -64,7 +64,7 @@ public class DB {
   public void writeRecord(RandomAccessFile file, String Id, String Codename ) {
     	//format input values to be put in record
         this.Id = String.format("%-3s", Id.length() > 3 ? Id.substring(0, 2) : Id);
-        this.Codename = String.format("%-30s", Codename.length() > 29 ? Codename.substring(0, 29) : Codename);
+        this.Codename = String.format("%-30s", Codename.length() > 30 ? Codename.substring(0, 29) : Codename);
 	try {
 		file.writeBytes(this.Id + "," + this.Codename + "\n");
 	} catch (IOException e) {
