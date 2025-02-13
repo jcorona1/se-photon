@@ -1,41 +1,48 @@
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.Scanner;
 
-public class udpClient
-{
-	public static void main(String args[]) throws IOException
-	{
-		Scanner sc = new Scanner(System.in);
+public class UdpClient {
 
-		// Step 1:Create the socket object for
-		// carrying the data.
-		DatagramSocket ds = new DatagramSocket(7500);
+    public static void main(String[] args) {
+        // Define the broadcast address and port
+        String broadcastAddress = "127.0.0.1"; // Broadcast address
+        int port = 7500; // Port to broadcast on
 
-		InetAddress ip = InetAddress.getLocalHost();
-		byte buf[] = null;
+        try (Scanner scanner = new Scanner(System.in)) {
+            // Create a DatagramSocket
+            DatagramSocket socket = new DatagramSocket();
+            socket.setBroadcast(true); // Enable broadcast
 
-		// loop while user not enters "bye"
-		while (true)
+            while (true) {
+                // Prompt the user for a message to broadcast
+                System.out.print("Enter a message to broadcast: ");
+                String message = scanner.nextLine(); // Read user input
+
+                if (message.equalsIgnoreCase("exit")) {
+                    break; // Exit the loop if the user types "exit".
+                }
+
+                byte[] buffer = message.getBytes();
+
+                // Create a DatagramPacket with the broadcast address and port
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(broadcastAddress), port);
+
+                // Send the packet
+                socket.send(packet);
+                System.out.println("Broadcast message sent: " + message);
+				
+		if (message.equals("221"))
 		{
-			String inp = sc.nextLine();
-
-			// convert the String input into the byte array.
-			buf = inp.getBytes();
-
-			// Step 2 : Create the datagramPacket for sending
-			// the data.
-			DatagramPacket DpSend = new DatagramPacket(buf, buf.length, ip, 7501);
-
-			// Step 3 : invoke the send call to actually send
-			// the data.
-			ds.send(DpSend);
-
-			// break the loop if user enters "bye"
-			if (inp.equals("bye"))
-				break;
+			break; // Exit the loop once the exit code has been broadcast.
 		}
-	}
+            }
+
+            // Close the socket
+            socket.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
