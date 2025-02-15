@@ -35,6 +35,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
     
     // Reference to the pop-up dialog
     private JDialog playerEntryDialog;
+    private JDialog changeNetworkDialog;
     
     // Table models for each half (to allow dynamic updating)
     private DefaultTableModel leftModel;
@@ -44,6 +45,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
     private JTable leftTable;
     private JTable rightTable;
     
+    // TODO - Move main functionality outside of constructor and into its own method
     public PlayerEntry() {
         // Open the database.
         db.openDB("photon.csv");
@@ -53,14 +55,22 @@ public class PlayerEntry extends JFrame implements ActionListener {
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLayout(new BorderLayout());
         
-        // --- Top Panel for Indicator ---
+        // TODO - Create a method to streamline the creation of new labels
+        // --- Top Panel for Indicators ---
+        // Creates label for adding a player
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topPanel.setOpaque(false);
-        JLabel indicator = new JLabel("Press F1 to add a player");
-        indicator.setFont(new Font("Arial", Font.BOLD, 24)); // Smaller font
-        indicator.setForeground(Color.BLACK); // Indicator text set to black.
-        topPanel.add(indicator);
+        JLabel addPlayer = new JLabel("Press F1 to add a player");
+        addPlayer.setFont(new Font("Arial", Font.BOLD, 24)); // Smaller font
+        addPlayer.setForeground(Color.BLACK); // Text set to black.
+        topPanel.add(addPlayer);
         add(topPanel, BorderLayout.NORTH);
+        // Creates label for changing network address
+        JLabel changeNetworkAddress = new JLabel("Press F2 to change network address");
+        changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 24)); 
+        changeNetworkAddress.setForeground(Color.BLACK);
+        topPanel.add(changeNetworkAddress);
+
         
         // --- Center Panel divided into two halves ---
         JPanel centerPanel = new JPanel(new GridLayout(1, 2));
@@ -98,6 +108,16 @@ public class PlayerEntry extends JFrame implements ActionListener {
             @Override
             public void actionPerformed(ActionEvent e) {
                 openPlayerEntryDialog();
+            }
+        });
+
+        // --- Key Binding for F2 ---
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(KeyStroke.getKeyStroke("F2"), "changeNetworkAddress");
+        getRootPane().getActionMap().put("changeNetworkAddress", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                changeNetworkAddressDialog();
             }
         });
         
@@ -216,6 +236,31 @@ public class PlayerEntry extends JFrame implements ActionListener {
                 playerEntryDialog.dispose();
                 break;
         }
+    }
+
+    // Creates pop-up dialog for changing the network address used by the game
+    private void changeNetworkAddressDialog() {
+        changeNetworkDialog = new JDialog(this, "Change Network Address", true);
+        changeNetworkDialog.setSize(400, 200);
+        changeNetworkDialog.setLayout(new GridLayout(3, 1));
+        changeNetworkDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        changeNetworkDialog.setLocationRelativeTo(null);
+
+        jlabel = new JLabel("Enter New Network Address: ");
+        idText = new JTextField(9);
+        jbutton = new JButton("Enter");
+        jbutton.addActionListener(this);
+
+        changeNetworkDialog.add(jlabel);
+        changeNetworkDialog.add(idText);
+        changeNetworkDialog.add(jbutton);
+
+        changeNetworkDialog.setVisible(true);
+    }
+
+    // Changes the network address used by UDP client
+    private void changeNetworkAddress() {
+        
     }
     
     // Sends the equipment code via UDP broadcast to port 7500.
