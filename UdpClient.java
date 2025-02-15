@@ -8,7 +8,7 @@ public class UdpClient {
     public static void main(String[] args) {
         // Define the broadcast address and port
         String broadcastAddress = "127.0.0.1"; // Broadcast address
-        int port = 7500; // Port to broadcast on
+        // int port = 7500; // Port to broadcast on
 
         try (Scanner scanner = new Scanner(System.in)) {
             // Create a DatagramSocket
@@ -27,7 +27,7 @@ public class UdpClient {
                 byte[] buffer = message.getBytes();
 
                 // Create a DatagramPacket with the broadcast address and port
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(broadcastAddress), port);
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(broadcastAddress), 7501);
 
                 // Send the packet
                 socket.send(packet);
