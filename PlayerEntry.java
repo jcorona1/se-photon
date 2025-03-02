@@ -225,8 +225,9 @@ public class PlayerEntry extends JFrame implements ActionListener {
             udpSocket.setBroadcast(true);
             String message = Integer.toString(equipmentId);
             byte[] buffer = message.getBytes();
-            InetAddress broadcastAddress = InetAddress.getByName("127.0.0.1");
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7501);
+            InetAddress broadcastAddress = InetAddress.getByName(UdpClient.getBroadcastAddress());
+            // Equipment will be listening on port 7500.
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7500);
             udpSocket.send(packet);
             udpSocket.close();
         } catch (Exception ex) {
