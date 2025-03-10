@@ -6,6 +6,8 @@ import java.awt.event.ActionListener;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.sql.*;
+import java.util.regex.*;
 
 public class PlayerEntry extends JFrame implements ActionListener {
     // Player entry GUI components (for the pop-up dialog)
@@ -29,12 +31,12 @@ public class PlayerEntry extends JFrame implements ActionListener {
     // Flag to indicate if the player exists in the database.
     private boolean playerFound;
     
-    // Database variables (ensure DB and Record classes are implemented)
-    private DB db = new DB();
-    private Record record = new Record();
+    // Boolean to track if the game has started.
+    private boolean gameStarted = false;
     
     // Reference to the pop-up dialog
     private JDialog playerEntryDialog;
+    private JDialog changeNetworkDialog;
     
     // Table models for each half (to allow dynamic updating)
     private DefaultTableModel leftModel;
@@ -44,22 +46,52 @@ public class PlayerEntry extends JFrame implements ActionListener {
     private JTable leftTable;
     private JTable rightTable;
     
+    // Database variables
+    public Connection photon; 
+    public PreparedStatement codenameQuery;
+    public PreparedStatement insertPlayer;
+    public ResultSet codenameQueryResult;
+
     public PlayerEntry() {
-        // Open the database.
-        db.openDB("photon.csv");
-        
+        // Open the player database
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            System.out.println(e);
+        }
+        try {
+            photon = DriverManager.getConnection("jdbc:postgresql://localhost:5432/photon", "student", "student");
+        } catch (SQLException e) {
+            System.out.println("Error establishing database connection." + e);
+        }
+
         // Set up the full-screen window.
         setUndecorated(true);
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLayout(new BorderLayout());
         
-        // --- Top Panel for Indicator ---
+        // --- Top Panel for Indicators ---
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topPanel.setOpaque(false);
-        JLabel indicator = new JLabel("Press F1 to add a player");
-        indicator.setFont(new Font("Arial", Font.BOLD, 24)); // Smaller font
-        indicator.setForeground(Color.BLACK); // Indicator text set to black.
-        topPanel.add(indicator);
+        
+        // Label for adding a player (F1)
+        JLabel addPlayer = new JLabel("Press F1 to add a player");
+        addPlayer.setFont(new Font("Arial", Font.BOLD, 24));
+        addPlayer.setForeground(Color.BLACK);
+        topPanel.add(addPlayer);
+        
+        // Label for changing network address (F3)
+        JLabel changeNetworkAddress = new JLabel("Press F3 to change network address");
+        changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 24));
+        changeNetworkAddress.setForeground(Color.BLACK);
+        topPanel.add(changeNetworkAddress);
+        
+        // New label for PlayerAction (F5)
+        JLabel playerActionLabel = new JLabel("Press F5 for player action");
+        playerActionLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        playerActionLabel.setForeground(Color.BLACK);
+        topPanel.add(playerActionLabel);
+        
         add(topPanel, BorderLayout.NORTH);
         
         // --- Center Panel divided into two halves ---
@@ -101,6 +133,30 @@ public class PlayerEntry extends JFrame implements ActionListener {
             }
         });
         
+        // --- Key Binding for F3 ---
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(KeyStroke.getKeyStroke("F3"), "changeNetworkAddress");
+        getRootPane().getActionMap().put("changeNetworkAddress", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                changeNetworkAddressDialog();
+            }
+        });
+        
+        // --- Key Binding for F5 ---
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(KeyStroke.getKeyStroke("F5"), "createPlayerAction");
+        getRootPane().getActionMap().put("createPlayerAction", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Only start PlayerAction if the game hasn't already started.
+                if (!gameStarted) {
+                    gameStarted = true;
+                    new PlayerAction(leftModel, rightModel);
+                }
+            }
+        });
+        
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
     }
@@ -115,7 +171,12 @@ public class PlayerEntry extends JFrame implements ActionListener {
         
         jlabel = new JLabel("Enter Player ID:");
         idText = new JTextField(20);
-        jbutton = new JButton("Enter");
+        jbutton = new JButton(new AbstractAction("Enter") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                update();
+            }
+        });
         jbutton.addActionListener(this);
         
         playerEntryDialog.add(jlabel);
@@ -139,11 +200,18 @@ public class PlayerEntry extends JFrame implements ActionListener {
                     return;
                 }
                 // Check if player exists.
-                if (db.search(Integer.toString(id).trim()) >= 0) {
+                try {
+                    codenameQuery = photon.prepareStatement("SELECT codename FROM players WHERE id = " + id + ";");
+                    codenameQueryResult = codenameQuery.executeQuery();
+                    codenameQueryResult.next();
+                } catch (SQLException e) {
+                    System.out.println("Query error." + e);
+                }
+                try {
+                    codename = codenameQueryResult.getString("codename");
                     playerFound = true;
-                    record = db.readRecord(db.search(Integer.toString(id).trim()));
-                    codename = record.Codename;
-                } else {
+                    JOptionPane.showMessageDialog(this, "Player ID found. Welcome, " + codename + ".");
+                } catch (SQLException e) {
                     playerFound = false;
                 }
                 // Next: ask for Equipment ID.
@@ -171,7 +239,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
                     // Existing player: go directly to team selection.
                     jlabel.setText("Enter Player Team (red/green):");
                     idText.setText("");
-                    state = 3;
+                    state = 4;
                 } else {
                     // New player: first ask for codename.
                     jlabel.setText("Enter Player Codename:");
@@ -189,7 +257,12 @@ public class PlayerEntry extends JFrame implements ActionListener {
                         return;
                     }
                     // Add the new record to the database.
-                    db.addRecord(Integer.toString(id), codename);
+                    try {
+                        insertPlayer = photon.prepareStatement("INSERT INTO players VALUES(" + id + ", '" + codename + "');");            
+                        insertPlayer.execute();
+                    } catch (SQLException e) {
+                        System.out.println("Error in Prepared Statements." + e);
+                    } 
                     // Next, ask for the team.
                     jlabel.setText("Enter Player Team (red/green):");
                     idText.setText("");
@@ -217,6 +290,71 @@ public class PlayerEntry extends JFrame implements ActionListener {
                 break;
         }
     }
+
+    // Creates pop-up dialog for changing the network address used by the game
+    private void changeNetworkAddressDialog() {
+        changeNetworkDialog = new JDialog(this, "Change Network Address", true);
+        changeNetworkDialog.setSize(400, 200);
+        changeNetworkDialog.setLayout(new GridLayout(4, 1));
+        changeNetworkDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        changeNetworkDialog.setLocationRelativeTo(null);
+
+        jlabel = new JLabel("Enter New Network Address: ");
+        JLabel currentIP = new JLabel("(current address is " + UdpClient.getBroadcastAddress() + ")");
+        idText = new JTextField(9);
+        jbutton = new JButton(new AbstractAction("Change Network") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                changeNetworkAddress();
+            }
+        });
+        jbutton.addActionListener(this);
+
+        changeNetworkDialog.add(jlabel);
+        changeNetworkDialog.add(currentIP);
+        changeNetworkDialog.add(idText);
+        changeNetworkDialog.add(jbutton);
+
+        changeNetworkDialog.setVisible(true);
+    }
+
+    // Changes the network address used by UDP client
+    private void changeNetworkAddress() {
+        // Retrieves text entered into dialog text field
+        String address = idText.getText().trim();
+        
+        if(isValidAddress(address)) {
+            // Changes broadcastAddress in UdpClient
+            UdpClient.setBroadcastAddress(address);
+            // Displays message confirming address change
+            JOptionPane.showMessageDialog(changeNetworkDialog, "Network Address Changed! "  
+                + "New IP address is: \n" + UdpClient.getBroadcastAddress());
+            // Removes dialog
+            changeNetworkDialog.dispose();
+        }
+        else {
+            // Displays message dialog that address is invalid 
+            JOptionPane.showMessageDialog(changeNetworkDialog, "Invalid IP address. Please enter a valid address.");
+        }
+    }
+
+    private boolean isValidAddress(String address) {
+        // Checks that the address is in valid length range
+        if(address == null) {
+            return false;
+        }
+
+        // Regex for a number 0 - 255
+        String zeroTo255 = "(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])";
+        // Regex for the format of IP addresses
+        String ipFormat = zeroTo255 + "\\." + zeroTo255 + "\\." + zeroTo255 + "\\." + zeroTo255;
+        // Turn ipFormat into Regex pattern
+        Pattern ipPattern = Pattern.compile(ipFormat);
+        // Turn ipPattern into a matchable object
+        Matcher ipAddress = ipPattern.matcher(address);
+        // Return whether address matches IP address pattern
+        return ipAddress.matches();
+    }
     
     // Sends the equipment code via UDP broadcast to port 7500.
     private void broadcastEquipmentCode(int equipmentId) {
@@ -225,8 +363,8 @@ public class PlayerEntry extends JFrame implements ActionListener {
             udpSocket.setBroadcast(true);
             String message = Integer.toString(equipmentId);
             byte[] buffer = message.getBytes();
-            InetAddress broadcastAddress = InetAddress.getByName("127.0.0.1");
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7500);
+            InetAddress broadcastAddress = InetAddress.getByName(UdpClient.getBroadcastAddress());
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7501);
             udpSocket.send(packet);
             udpSocket.close();
         } catch (Exception ex) {
@@ -259,7 +397,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
     // ActionListener method for the button in the dialog.
     @Override
     public void actionPerformed(ActionEvent e) {
-        update();
+        //update();
     }
     
     public static void main(String[] args) {
