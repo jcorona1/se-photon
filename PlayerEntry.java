@@ -300,8 +300,14 @@ public class PlayerEntry extends JFrame implements ActionListener {
     // Start a countdown and then deploy player action screen
     private void startGame()
     {
-        Countdown countdown = new Countdown();
-        PlayerAction playerAction = new PlayerAction(getLeftModel(), getRightModel());
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                PlayerAction playerAction = new PlayerAction(getLeftModel(), getRightModel());
+            }
+        };
+
+        new Countdown(runnable);
     }
 
     // Creates pop-up dialog for changing the network address used by the game
