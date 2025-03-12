@@ -36,8 +36,8 @@ public class PlayerEntry extends JFrame implements ActionListener {
     private JDialog changeNetworkDialog;
     
     // Table models for each half (to allow dynamic updating)
-    private DefaultTableModel leftModel;
-    private DefaultTableModel rightModel;
+    private DefaultTableModel leftModel; // red
+    private DefaultTableModel rightModel; // green
     
     // Tables for red and green halves
     private JTable leftTable; // red
@@ -74,16 +74,25 @@ public class PlayerEntry extends JFrame implements ActionListener {
         // Creates label for adding a player
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topPanel.setOpaque(false);
-        JLabel addPlayer = new JLabel("Press F1 to add a player");
+
+        JLabel addPlayer = new JLabel("Press F1 to add a player, ");
         addPlayer.setFont(new Font("Arial", Font.BOLD, 24)); // Smaller font
         addPlayer.setForeground(Color.BLACK); // Text set to black.
         topPanel.add(addPlayer);
+
         add(topPanel, BorderLayout.NORTH);
+
         // Creates label for changing network address
-        JLabel changeNetworkAddress = new JLabel("Press F3 to change network address");
+        JLabel changeNetworkAddress = new JLabel("Press F3 to change network address, ");
         changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 24)); 
         changeNetworkAddress.setForeground(Color.BLACK);
         topPanel.add(changeNetworkAddress);
+
+        // Creates label for starting game
+        JLabel startGame = new JLabel("Press F5 to start the game.");
+        startGame.setFont(new Font("Arial", Font.BOLD, 24)); // Smaller font
+        startGame.setForeground(Color.BLACK); // Text set to black.
+        topPanel.add(startGame);
 
         
         // --- Center Panel divided into two halves ---
@@ -134,11 +143,29 @@ public class PlayerEntry extends JFrame implements ActionListener {
                 changeNetworkAddressDialog();
             }
         });
+
+        // --- Key Binding for F5 ---
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(KeyStroke.getKeyStroke("F5"), "startGame");
+        getRootPane().getActionMap().put("startGame", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                startGame();
+            }
+        });
         
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
     }
-    
+
+    public DefaultTableModel getLeftModel() {
+        return leftModel;
+    }
+
+    public DefaultTableModel getRightModel() {
+        return rightModel;
+    }
+
     // Creates and shows the pop-up dialog for player entry.
     private void openPlayerEntryDialog() {
         playerEntryDialog = new JDialog(this, "Player Entry", true);
@@ -268,6 +295,13 @@ public class PlayerEntry extends JFrame implements ActionListener {
                 playerEntryDialog.dispose();
                 break;
         }
+    }
+
+    // Start a countdown and then deploy player action screen
+    private void startGame()
+    {
+        Countdown countdown = new Countdown();
+        PlayerAction playerAction = new PlayerAction(getLeftModel(), getRightModel());
     }
 
     // Creates pop-up dialog for changing the network address used by the game
