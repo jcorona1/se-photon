@@ -23,7 +23,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
     
     // Variable for tracking entry state:
     // 1: Enter Player ID
-    // 2: Enter Equipment ID (1-40)
+    // 2: Enter Equipment ID (1-100)
     // 3: For a new player, Enter Player Codename; for an existing player, Enter Team
     // 4: (For a new player only) Enter Team
     private int state;
@@ -31,17 +31,20 @@ public class PlayerEntry extends JFrame implements ActionListener {
     // Flag to indicate if the player exists in the database.
     private boolean playerFound;
     
+    // Boolean to track if the game has started.
+    private boolean gameStarted = false;
+    
     // Reference to the pop-up dialog
     private JDialog playerEntryDialog;
     private JDialog changeNetworkDialog;
     
     // Table models for each half (to allow dynamic updating)
-    private DefaultTableModel leftModel;
-    private DefaultTableModel rightModel;
+    private DefaultTableModel leftModel; // red
+    private DefaultTableModel rightModel; // green
     
     // Tables for red and green halves
-    private JTable leftTable;
-    private JTable rightTable;
+    private JTable leftTable; // red
+    private JTable rightTable; // green
     
     // Database variables
     public Connection photon; 
@@ -61,7 +64,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
         try {
             photon = DriverManager.getConnection("jdbc:postgresql://localhost:5432/photon", "student", "student");
         } catch (SQLException e) {
-            System.out.println("Error establishing database connection."+e);
+            System.out.println("Error establishing database connection." + e);
         }
 
         // Set up the full-screen window.
@@ -74,17 +77,26 @@ public class PlayerEntry extends JFrame implements ActionListener {
         // Creates label for adding a player
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topPanel.setOpaque(false);
-        JLabel addPlayer = new JLabel("Press F1 to add a player");
+
+	// Label for adding a player (F1)
+        JLabel addPlayer = new JLabel("Press F1 to add a player, ");
         addPlayer.setFont(new Font("Arial", Font.BOLD, 24)); // Smaller font
         addPlayer.setForeground(Color.BLACK); // Text set to black.
         topPanel.add(addPlayer);
-        add(topPanel, BorderLayout.NORTH);
-        // Creates label for changing network address
+        
+        // Label for changing network address (F3)
         JLabel changeNetworkAddress = new JLabel("Press F3 to change network address");
-        changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 24)); 
+        changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 24));
         changeNetworkAddress.setForeground(Color.BLACK);
         topPanel.add(changeNetworkAddress);
-
+        
+        // New label for PlayerAction (F5)
+        JLabel playerActionLabel = new JLabel("Press F5 for player action");
+        playerActionLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        playerActionLabel.setForeground(Color.BLACK);
+        topPanel.add(playerActionLabel);
+        
+        add(topPanel, BorderLayout.NORTH);
         
         // --- Center Panel divided into two halves ---
         JPanel centerPanel = new JPanel(new GridLayout(1, 2));
@@ -124,14 +136,28 @@ public class PlayerEntry extends JFrame implements ActionListener {
                 openPlayerEntryDialog();
             }
         });
-
-        // --- Key Binding for F2 ---
+        
+        // --- Key Binding for F3 ---
         getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
                 .put(KeyStroke.getKeyStroke("F3"), "changeNetworkAddress");
         getRootPane().getActionMap().put("changeNetworkAddress", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 changeNetworkAddressDialog();
+            }
+        });
+        
+        // --- Key Binding for F5 ---
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(KeyStroke.getKeyStroke("F5"), "createPlayerAction");
+        getRootPane().getActionMap().put("createPlayerAction", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Only start PlayerAction if the game hasn't already started.
+                if (!gameStarted) {
+                    gameStarted = true;
+                    new PlayerAction(leftModel, rightModel);
+                }
             }
         });
         
@@ -179,7 +205,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
                 }
                 // Check if player exists.
                 try {
-                    codenameQuery = photon.prepareStatement("SELECT codename FROM players WHERE id = "+id+";");
+                    codenameQuery = photon.prepareStatement("SELECT codename FROM players WHERE id = " + id + ";");
                     codenameQueryResult = codenameQuery.executeQuery();
                     codenameQueryResult.next();
                     
@@ -194,7 +220,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
                     playerFound = false;
                 }
                 // Next: ask for Equipment ID.
-                jlabel.setText("Enter Equipment ID (1-40):");
+                jlabel.setText("Enter Equipment ID (1-100):");
                 idText.setText("");
                 state = 2;
                 break;
@@ -206,8 +232,8 @@ public class PlayerEntry extends JFrame implements ActionListener {
                     JOptionPane.showMessageDialog(playerEntryDialog, "Invalid Equipment ID. Please enter a number between 1 and 40.");
                     return;
                 }
-                if (equipmentId < 1 || equipmentId > 40) {
-                    JOptionPane.showMessageDialog(playerEntryDialog, "Equipment ID must be between 1 and 40.");
+                if (equipmentId < 1 || equipmentId > 100) {
+                    JOptionPane.showMessageDialog(playerEntryDialog, "Equipment ID must be between 1 and 100.");
                     return;
                 }
                 // Broadcast the equipment code via UDP.
@@ -237,10 +263,10 @@ public class PlayerEntry extends JFrame implements ActionListener {
                     }
                     // Add the new record to the database.
                     try {
-                        insertPlayer = photon.prepareStatement("INSERT INTO players VALUES("+id+", \'"+codename+"\');");            
+                        insertPlayer = photon.prepareStatement("INSERT INTO players VALUES(" + id + ", '" + codename + "');");            
                         insertPlayer.execute();
                     } catch (SQLException e) {
-                        System.out.println("Error in Prepared Statements."+e);
+                        System.out.println("Error in Prepared Statements." + e);
                     } 
                     // Next, ask for the team.
                     jlabel.setText("Enter Player Team (red/green):");
@@ -299,11 +325,11 @@ public class PlayerEntry extends JFrame implements ActionListener {
 
     // Changes the network address used by UDP client
     private void changeNetworkAddress() {
-        // Retreives text entered into dialog text field
+        // Retrieves text entered into dialog text field
         String address = idText.getText().trim();
         
         if(isValidAddress(address)) {
-            // Changes boradcastAddress in UdpClient
+            // Changes broadcastAddress in UdpClient
             UdpClient.setBroadcastAddress(address);
             // Displays message confirming address change
             JOptionPane.showMessageDialog(changeNetworkDialog, "Network Address Changed! "  
@@ -343,7 +369,8 @@ public class PlayerEntry extends JFrame implements ActionListener {
             String message = Integer.toString(equipmentId);
             byte[] buffer = message.getBytes();
             InetAddress broadcastAddress = InetAddress.getByName(UdpClient.getBroadcastAddress());
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7501);
+            // Equipment will be listening on port 7500.
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7500);
             udpSocket.send(packet);
             udpSocket.close();
         } catch (Exception ex) {
