@@ -81,7 +81,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
 
 	    // Label for adding a player (F1)
         JLabel addPlayer = new JLabel("Press F1 to add a player, ");
-        addPlayer.setFont(new Font("Arial", Font.BOLD, 24)); // Smaller font
+        addPlayer.setFont(new Font("Arial", Font.BOLD, 16)); // Smaller font
         addPlayer.setForeground(Color.BLACK); // Text set to black.
         topPanel.add(addPlayer);
 
@@ -89,19 +89,19 @@ public class PlayerEntry extends JFrame implements ActionListener {
 
         // Label for changing network address (F3)
         JLabel changeNetworkAddress = new JLabel("Press F3 to change network address, ");
-        changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 24)); 
+        changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 16)); 
         changeNetworkAddress.setForeground(Color.BLACK);
         topPanel.add(changeNetworkAddress);
 
         // Label for starting game (F5)
         JLabel startGame = new JLabel("Press F5 to start the game, ");
-        startGame.setFont(new Font("Arial", Font.BOLD, 24)); 
+        startGame.setFont(new Font("Arial", Font.BOLD, 16)); 
         startGame.setForeground(Color.BLACK); 
         topPanel.add(startGame);
 
         // Label for clearing player entries (F12)
         JLabel clearPlayerEntries = new JLabel("Press F12 to clear player entries");
-        clearPlayerEntries.setFont(new Font("Arial", Font.BOLD, 24)); 
+        clearPlayerEntries.setFont(new Font("Arial", Font.BOLD, 16)); 
         clearPlayerEntries.setForeground(Color.BLACK); 
         topPanel.add(clearPlayerEntries);
         
