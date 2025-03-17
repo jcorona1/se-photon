@@ -37,6 +37,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
     // Reference to the pop-up dialog
     private JDialog playerEntryDialog;
     private JDialog changeNetworkDialog;
+    private JDialog clearedPlayerEntriesDialog;
     
     // Table models for each half (to allow dynamic updating)
     private DefaultTableModel leftModel; // red
@@ -78,25 +79,31 @@ public class PlayerEntry extends JFrame implements ActionListener {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topPanel.setOpaque(false);
 
-	// Label for adding a player (F1)
+	    // Label for adding a player (F1)
         JLabel addPlayer = new JLabel("Press F1 to add a player, ");
         addPlayer.setFont(new Font("Arial", Font.BOLD, 24)); // Smaller font
         addPlayer.setForeground(Color.BLACK); // Text set to black.
         topPanel.add(addPlayer);
-        
+
+        add(topPanel, BorderLayout.NORTH);
+
         // Label for changing network address (F3)
-        JLabel changeNetworkAddress = new JLabel("Press F3 to change network address");
-        changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 24));
+        JLabel changeNetworkAddress = new JLabel("Press F3 to change network address, ");
+        changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 24)); 
         changeNetworkAddress.setForeground(Color.BLACK);
         topPanel.add(changeNetworkAddress);
-        
-        // New label for PlayerAction (F5)
-        JLabel playerActionLabel = new JLabel("Press F5 for player action");
-        playerActionLabel.setFont(new Font("Arial", Font.BOLD, 24));
-        playerActionLabel.setForeground(Color.BLACK);
-        topPanel.add(playerActionLabel);
-        
-        add(topPanel, BorderLayout.NORTH);
+
+        // Label for starting game (F5)
+        JLabel startGame = new JLabel("Press F5 to start the game, ");
+        startGame.setFont(new Font("Arial", Font.BOLD, 24)); 
+        startGame.setForeground(Color.BLACK); 
+        topPanel.add(startGame);
+
+        // Label for clearing player entries (F12)
+        JLabel clearPlayerEntries = new JLabel("Press F12 to clear player entries");
+        clearPlayerEntries.setFont(new Font("Arial", Font.BOLD, 24)); 
+        clearPlayerEntries.setForeground(Color.BLACK); 
+        topPanel.add(clearPlayerEntries);
         
         // --- Center Panel divided into two halves ---
         JPanel centerPanel = new JPanel(new GridLayout(1, 2));
@@ -149,22 +156,36 @@ public class PlayerEntry extends JFrame implements ActionListener {
         
         // --- Key Binding for F5 ---
         getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
-                .put(KeyStroke.getKeyStroke("F5"), "createPlayerAction");
-        getRootPane().getActionMap().put("createPlayerAction", new AbstractAction() {
+                .put(KeyStroke.getKeyStroke("F5"), "startGame");
+        getRootPane().getActionMap().put("startGame", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Only start PlayerAction if the game hasn't already started.
-                if (!gameStarted) {
-                    gameStarted = true;
-                    new PlayerAction(leftModel, rightModel);
-                }
+                startGame();
+            }
+        });
+
+        // --- Key Binding for F12 ---
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(KeyStroke.getKeyStroke("F12"), "clearPlayerEntries");
+        getRootPane().getActionMap().put("clearPlayerEntries", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                clearPlayerEntries();
             }
         });
         
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
     }
-    
+
+    public DefaultTableModel getLeftModel() {
+        return leftModel;
+    }
+
+    public DefaultTableModel getRightModel() {
+        return rightModel;
+    }
+
     // Creates and shows the pop-up dialog for player entry.
     private void openPlayerEntryDialog() {
         playerEntryDialog = new JDialog(this, "Player Entry", true);
@@ -296,6 +317,19 @@ public class PlayerEntry extends JFrame implements ActionListener {
         }
     }
 
+    // Start a countdown and then deploy player action screen
+    private void startGame()
+    {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                PlayerAction playerAction = new PlayerAction(getLeftModel(), getRightModel());
+            }
+        };
+
+        new Countdown(runnable);
+    }
+
     // Creates pop-up dialog for changing the network address used by the game
     private void changeNetworkAddressDialog() {
         changeNetworkDialog = new JDialog(this, "Change Network Address", true);
@@ -341,6 +375,16 @@ public class PlayerEntry extends JFrame implements ActionListener {
             // Displays message dialog that address is invalid 
             JOptionPane.showMessageDialog(changeNetworkDialog, "Invalid IP address. Please enter a valid address.");
         }
+    }
+
+    private void clearPlayerEntries() {
+        leftModel.setRowCount(0);
+        rightModel.setRowCount(0);
+
+        // Displays message confirming player entries cleared
+        JOptionPane.showMessageDialog(clearedPlayerEntriesDialog, "Player Entries Cleared!");
+        // Removes dialog
+        clearedPlayerEntriesDialog.dispose();        
     }
 
     private boolean isValidAddress(String address) {
