@@ -15,8 +15,11 @@ public class Countdown extends JWindow {
     private BufferedImage image;
     private BufferedImage alertImage;
     private Timer timer = new Timer();
+    private Runnable callback;
 
-    public Countdown() {
+    public Countdown(Runnable callback) {
+        this.callback = callback;
+
         // Load the background image from the file
         File file = new File("./countdown_images/background.tif");
         try {
@@ -74,6 +77,11 @@ public class Countdown extends JWindow {
                 if (interval == 0) {
                     timer.cancel(); // Close countdown screen
                     dispose();
+
+                    if (callback != null)
+                    {
+                        callback.run();
+                    }
                 }
                 interval--;
             }
@@ -81,6 +89,6 @@ public class Countdown extends JWindow {
     }
 
     public static void main(String[] args) {
-        new Countdown();
+        new Countdown(() -> System.out.println("Countdown Complete"));
     }
 }
