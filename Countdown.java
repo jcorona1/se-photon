@@ -8,7 +8,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 
-
 public class Countdown extends JWindow {
     static int interval = 30;
     static BufferedImage number;
@@ -16,8 +15,11 @@ public class Countdown extends JWindow {
     private BufferedImage image;
     private BufferedImage alertImage;
     private Timer timer = new Timer();
+    private Runnable callback;
 
-    public Countdown() {
+    public Countdown(Runnable callback) {
+        this.callback = callback;
+
         // Load the background image from the file
         File file = new File("./countdown_images/background.tif");
         try {
@@ -75,13 +77,18 @@ public class Countdown extends JWindow {
                 if (interval == 0) {
                     timer.cancel(); // Close countdown screen
                     dispose();
+
+                    if (callback != null)
+                    {
+                        callback.run();
+                    }
                 }
                 interval--;
             }
-        }, 1000, 1000); // Display for 1 second          
+        }, 1000, 1000); // Display for 1 second      
     }
 
     public static void main(String[] args) {
-        new Countdown();
+        new Countdown(() -> System.out.println("Countdown Complete"));
     }
 }
