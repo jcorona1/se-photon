@@ -1,8 +1,13 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 public class PlayerAction extends JFrame {
     static int minutes = 6;
@@ -58,20 +63,56 @@ public class PlayerAction extends JFrame {
 
         gameTimer.scheduleAtFixedRate(new TimerTask() {
             public void run () {
-                String message; 
+                String timerMessage; 
                 if (seconds == -1) {
                     minutes--;
                     seconds = 59;
                 }
                 if (minutes == -1) {
                     gameTimer.cancel();
+                    minutes = 6;
+                    seconds = 0;
+                    try {
+                        DatagramSocket udpSocket = new DatagramSocket();
+                        udpSocket.setBroadcast(true);
+                        String message = "221";
+                        byte[] buffer = message.getBytes();
+                        InetAddress broadcastAddress = InetAddress.getByName(UdpClient.getBroadcastAddress());
+                        // Equipment will be listening on port 7500.
+                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7500);
+                        udpSocket.send(packet);
+                        udpSocket.send(packet);
+                        udpSocket.send(packet);
+                        udpSocket.close();
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                    JDialog closeDialog = new JDialog();
+                    closeDialog.setSize(400, 300);
+                    closeDialog.setLayout(new GridLayout(2, 1));
+                    closeDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+                    closeDialog.setLocationRelativeTo(null);
+                    closeDialog.setVisible(true);
+
+                    JLabel closeDialogMessage = new JLabel("The maneuver has completed.");
+                    JButton closeButton = new JButton("Click here to return to Player Entry Screen.");
+                    closeButton.addActionListener(new ActionListener() {
+                        public void actionPerformed(ActionEvent e) {
+                            dispose();
+                            closeDialog.dispose();
+                        }
+                    });
+
+                    closeDialog.add(closeDialogMessage);
+                    closeDialog.add(closeButton);
+
                 }
                 if (seconds <= 9) {
-                    message = "Time Remaining: " + minutes + ":0" + seconds;
+                    timerMessage = "Time Remaining: " + minutes + ":0" + seconds;
                 } else {
-                    message = "Time Remaining: " + minutes + ":" + seconds;
+                    timerMessage = "Time Remaining: " + minutes + ":" + seconds;
                 }
-                timeRemaining.setText(message);
+                timeRemaining.setText(timerMessage);
                 middlePanel.add(timeRemaining);
                 seconds--;
             }
