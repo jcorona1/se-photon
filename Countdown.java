@@ -6,6 +6,9 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 
 public class Countdown extends JWindow {
@@ -76,6 +79,19 @@ public class Countdown extends JWindow {
 
                 if (interval == 0) {
                     timer.cancel(); // Close countdown screen
+                    try {
+                        DatagramSocket udpSocket = new DatagramSocket();
+                        udpSocket.setBroadcast(true);
+                        String message = "202";
+                        byte[] buffer = message.getBytes();
+                        InetAddress broadcastAddress = InetAddress.getByName(UdpClient.getBroadcastAddress());
+                        // Equipment will be listening on port 7500.
+                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7500);
+                        udpSocket.send(packet);
+                        udpSocket.close();
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                     dispose();
 
                     if (callback != null)
@@ -83,7 +99,11 @@ public class Countdown extends JWindow {
                         callback.run();
                     }
                 }
-                interval--;
+                if (interval != 0) {
+                    interval--;
+                } else {
+                    interval = 30;
+                }
             }
         }, 1000, 1000); // Display for 1 second      
     }
