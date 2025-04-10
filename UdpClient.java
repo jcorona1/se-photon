@@ -5,11 +5,6 @@ import java.util.Scanner;
 
 public class UdpClient {
 
-    /*
-        TODO - Set up broadcast from PlayerEntry
-        id gets sent to 7500
-    */
-
     private static String broadcastAddress = "127.0.0.1"; // Broadcast address
     private static int port = 7500; // Port to broadcast to
 
@@ -30,7 +25,24 @@ public class UdpClient {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(getBroadcastAddress()), port);
 
             socket.send(packet);
-            System.out.println("Broadcast message sent: " + message);
+            System.out.println(message);
+
+            socket.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void broadcastMessageToPlayerAction(String message) {
+        try {
+            DatagramSocket socket = new DatagramSocket();
+            socket.setBroadcast(true);
+
+            byte[] buffer = message.getBytes();
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(getBroadcastAddress()), 7502);
+
+            socket.send(packet);
+            System.out.println(message);
 
             socket.close();
         } catch (Exception e) {
