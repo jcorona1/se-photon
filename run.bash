@@ -15,3 +15,7 @@ if [ $? -eq 0 ]; then
 else
     echo "Compilation failed. Fix errors and try again."
 fi
+
+# Remove class files again
+echo "Cleaning up old class files..."
+rm -f *.class
