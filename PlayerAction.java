@@ -10,15 +10,14 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class PlayerAction extends JFrame {
-    /*
     static int minutes = 6;
     static int seconds = 0;
-    */
-    static int minutes = 0;
-    static int seconds = 5;
+
     Timer gameTimer = new Timer();
 
-    private JLabel receivedMessageLabel = new JLabel("Waiting for messages...");
+    String udpMessage;
+
+    private JTextArea eventLog;
 
     public PlayerAction(DefaultTableModel redTeamModel, DefaultTableModel greenTeamModel) {
         // Duplicate the provided models
@@ -38,17 +37,29 @@ public class PlayerAction extends JFrame {
         redScrollPane.setPreferredSize(new Dimension(400, 300));
         leftPanel.add(redScrollPane);
 
-        // Middle Panel (Message + Timer)
-        JPanel middlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        // Middle Panel (Message + Timer + Event log)
+        JPanel middlePanel = new JPanel(new GridBagLayout());
         middlePanel.setBackground(Color.BLACK);
-        receivedMessageLabel.setForeground(Color.WHITE);
-        receivedMessageLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        middlePanel.add(receivedMessageLabel);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.anchor = GridBagConstraints.CENTER;
 
+        // Timer
         JLabel timeRemaining = new JLabel();
         timeRemaining.setFont(new Font("Arial", Font.BOLD, 16));
         timeRemaining.setForeground(Color.WHITE);
-        middlePanel.add(timeRemaining);
+        middlePanel.add(timeRemaining, gbc);
+
+        // Event log
+        eventLog = new JTextArea(10, 30);
+        eventLog.setEditable(false);
+        eventLog.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        JScrollPane eventScroll = new JScrollPane(eventLog);
+        eventScroll.setPreferredSize(new Dimension(400, 200));
+        gbc.gridy = 1;
+        middlePanel.add(eventScroll, gbc);
 
         // Right Panel (Green Team)
         JPanel rightPanel = new JPanel(new GridBagLayout());
@@ -66,11 +77,11 @@ public class PlayerAction extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
 
+        // Start UDP listener
+        listen();
+
         // Start game timer
         startTimer(timeRemaining);
-
-        // Start UDP listener
-        startUdpListener();
     }
 
     private void startTimer(JLabel timeRemaining) {
@@ -117,25 +128,32 @@ public class PlayerAction extends JFrame {
         }, 0, 1000);
     }
 
-    private void startUdpListener() {
+    private void listen() {
         new Thread(() -> {
             try {
-                DatagramSocket ds = new DatagramSocket(7501);
-                ds.setBroadcast(true);
-                byte[] receive = new byte[65535];
+                DatagramSocket socket = new DatagramSocket(7502);
+                byte[] buffer = new byte[65535];
 
                 while (true) {
-                    DatagramPacket dpReceive = new DatagramPacket(receive, receive.length);
-                    ds.receive(dpReceive);
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                    socket.receive(packet);
 
-                    String message = data(receive).toString();
-                    System.out.println("Received UDP Message: " + message);
+                    String udpMessage = new String(packet.getData(), 0, packet.getLength());
+                    System.out.println("Received message in PlayerAction: " + udpMessage);
 
                     SwingUtilities.invokeLater(() -> {
-                        receivedMessageLabel.setText("Received: " + message);
+                        if (udpMessage.contains(":"))
+                        {
+                            String[] equipmentIDs = udpMessage.split(":");
+                            String hitter = equipmentIDs[0];
+                            String victim = equipmentIDs[1];
+                            // Scrolls with newest messages at the top
+                            eventLog.insert("ID " + hitter + " hit ID " + victim + "\n", 0);
+                            eventLog.setCaretPosition(0);
+                        }
                     });
 
-                    receive = new byte[65535];
+                    buffer = new byte[65535];
                 }
             } catch (Exception e) {
                 e.printStackTrace();
