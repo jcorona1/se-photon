@@ -160,6 +160,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
         getRootPane().getActionMap().put("startGame", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                MusicPlayer.startMusicWithDelay();
                 startGame();
             }
         });
@@ -404,22 +405,10 @@ public class PlayerEntry extends JFrame implements ActionListener {
         // Return whether address matches IP address pattern
         return ipAddress.matches();
     }
-    
-    // Sends the equipment code via UDP broadcast to port 7500.
+
     private void broadcastEquipmentCode(int equipmentId) {
-        try {
-            DatagramSocket udpSocket = new DatagramSocket();
-            udpSocket.setBroadcast(true);
-            String message = Integer.toString(equipmentId);
-            byte[] buffer = message.getBytes();
-            InetAddress broadcastAddress = InetAddress.getByName(UdpClient.getBroadcastAddress());
-            // Equipment will be listening on port 7500.
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7500);
-            udpSocket.send(packet);
-            udpSocket.close();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        String message = Integer.toString(equipmentId);
+        UdpClient.broadcastMessage(message);
     }
     
     // Register the player: show message and add codename to the appropriate table.
