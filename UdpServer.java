@@ -1,8 +1,6 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
 
 public class UdpServer
 {
@@ -10,6 +8,7 @@ public class UdpServer
 	{
 		// Step 1 : Create a socket to listen at port 7501
 		DatagramSocket ds = new DatagramSocket(7501);
+		ds.setBroadcast(true);
 		byte[] receive = new byte[65535];
 
 		DatagramPacket DpReceive = null;
@@ -19,10 +18,12 @@ public class UdpServer
 			// Step 2 : create a DatgramPacket to receive the data.
 			DpReceive = new DatagramPacket(receive, receive.length);
 
-			// Step 3 : revieve the data in byte buffer.
+			// Step 3 : recieve the data in byte buffer.
 			ds.receive(DpReceive);
 
 			System.out.println("Client:-" + data(receive));
+
+			UdpClient.broadcastMessage("" + data(receive));
 
 			// Exit the server if the client sends "bye"
 			if (data(receive).toString().equals("bye"))
