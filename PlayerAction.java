@@ -145,10 +145,20 @@ public class PlayerAction extends JFrame {
                         if (udpMessage.contains(":"))
                         {
                             String[] equipmentIDs = udpMessage.split(":");
-                            String hitter = equipmentIDs[0];
-                            String victim = equipmentIDs[1];
+                            String hitter = "ID " + equipmentIDs[0];
+                            String victim = "ID " + equipmentIDs[1];
+
+                            if (victim == 53)
+                            {
+                                victim = "red base";
+                            }
+                            else if (victim == 43)
+                            {
+                                victim = "green base";
+                            }
+                            
                             // Scrolls with newest messages at the top
-                            eventLog.insert("ID " + hitter + " hit ID " + victim + "\n", 0);
+                            eventLog.insert(hitter + " hit " + victim + "\n", 0);
                             eventLog.setCaretPosition(0);
                         }
                     });
