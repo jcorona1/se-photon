@@ -3,11 +3,12 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+//import java.net.DatagramPacket;
+//import java.net.DatagramSocket;
+//import java.net.InetAddress;
 import java.sql.*;
 import java.util.regex.*;
+import java.util.HashMap;
 
 public class PlayerEntry extends JFrame implements ActionListener {
     // Player entry GUI components (for the pop-up dialog)
@@ -42,6 +43,9 @@ public class PlayerEntry extends JFrame implements ActionListener {
     // Table models for each half (to allow dynamic updating)
     private DefaultTableModel leftModel; // red
     private DefaultTableModel rightModel; // green
+
+    // Mapping from equipmentID to codename
+    private HashMap<String, String> equipmentIdToCodename = new HashMap<>();
     
     // Tables for red and green halves
     private JTable leftTable; // red
@@ -81,7 +85,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
 
 	    // Label for adding a player (F1)
         JLabel addPlayer = new JLabel("Press F1 to add a player, ");
-        addPlayer.setFont(new Font("Arial", Font.BOLD, 24)); // Smaller font
+        addPlayer.setFont(new Font("Arial", Font.BOLD, 16)); // Smaller font
         addPlayer.setForeground(Color.BLACK); // Text set to black.
         topPanel.add(addPlayer);
 
@@ -89,19 +93,19 @@ public class PlayerEntry extends JFrame implements ActionListener {
 
         // Label for changing network address (F3)
         JLabel changeNetworkAddress = new JLabel("Press F3 to change network address, ");
-        changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 24)); 
+        changeNetworkAddress.setFont(new Font("Arial", Font.BOLD, 16)); 
         changeNetworkAddress.setForeground(Color.BLACK);
         topPanel.add(changeNetworkAddress);
 
         // Label for starting game (F5)
         JLabel startGame = new JLabel("Press F5 to start the game, ");
-        startGame.setFont(new Font("Arial", Font.BOLD, 24)); 
+        startGame.setFont(new Font("Arial", Font.BOLD, 16)); 
         startGame.setForeground(Color.BLACK); 
         topPanel.add(startGame);
 
         // Label for clearing player entries (F12)
         JLabel clearPlayerEntries = new JLabel("Press F12 to clear player entries");
-        clearPlayerEntries.setFont(new Font("Arial", Font.BOLD, 24)); 
+        clearPlayerEntries.setFont(new Font("Arial", Font.BOLD, 16)); 
         clearPlayerEntries.setForeground(Color.BLACK); 
         topPanel.add(clearPlayerEntries);
         
@@ -111,7 +115,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
         // Left half panel (dark red background)
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setBackground(new Color(139, 0, 0)); // Dark red
-        leftModel = new DefaultTableModel(new Object[]{"Red Team"}, 0);
+        leftModel = new DefaultTableModel(new String[]{"Red Team Member Codename", "Equipment ID"}, 0);
         leftTable = new JTable(leftModel);
         JScrollPane leftScroll = new JScrollPane(leftTable);
         JPanel leftContainer = new JPanel(new GridBagLayout());
@@ -122,7 +126,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
         // Right half panel (dark green background)
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBackground(new Color(0, 100, 0)); // Dark green
-        rightModel = new DefaultTableModel(new Object[]{"Green Team"}, 0);
+        rightModel = new DefaultTableModel(new String[]{"Green Team Member Codename", "Equipment ID"}, 0);
         rightTable = new JTable(rightModel);
         JScrollPane rightScroll = new JScrollPane(rightTable);
         JPanel rightContainer = new JPanel(new GridBagLayout());
@@ -250,7 +254,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
                 try {
                     equipmentId = Integer.parseInt(idText.getText().trim());
                 } catch (NumberFormatException e) {
-                    JOptionPane.showMessageDialog(playerEntryDialog, "Invalid Equipment ID. Please enter a number between 1 and 40.");
+                    JOptionPane.showMessageDialog(playerEntryDialog, "Invalid Equipment ID. Please enter a number between 1 and 100.");
                     return;
                 }
                 if (equipmentId < 1 || equipmentId > 100) {
@@ -323,7 +327,12 @@ public class PlayerEntry extends JFrame implements ActionListener {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                PlayerAction playerAction = new PlayerAction(getLeftModel(), getRightModel());
+                // Add Red Base and Green Base equipment IDs to equipmentIdToCodename
+                equipmentIdToCodename.put("53", "Red Base");
+                equipmentIdToCodename.put("43", "Green Base");
+
+                // Start game
+                PlayerAction playerAction = new PlayerAction(getLeftModel(), getRightModel(), equipmentIdToCodename);
             }
         };
 
@@ -378,8 +387,12 @@ public class PlayerEntry extends JFrame implements ActionListener {
     }
 
     private void clearPlayerEntries() {
+        // Remove players from models
         leftModel.setRowCount(0);
         rightModel.setRowCount(0);
+
+        // Clear equipmentIdToCodename
+        equipmentIdToCodename.clear();
 
         // Displays message confirming player entries cleared
         JOptionPane.showMessageDialog(clearedPlayerEntriesDialog, "Player Entries Cleared!");
@@ -404,22 +417,10 @@ public class PlayerEntry extends JFrame implements ActionListener {
         // Return whether address matches IP address pattern
         return ipAddress.matches();
     }
-    
-    // Sends the equipment code via UDP broadcast to port 7500.
+
     private void broadcastEquipmentCode(int equipmentId) {
-        try {
-            DatagramSocket udpSocket = new DatagramSocket();
-            udpSocket.setBroadcast(true);
-            String message = Integer.toString(equipmentId);
-            byte[] buffer = message.getBytes();
-            InetAddress broadcastAddress = InetAddress.getByName(UdpClient.getBroadcastAddress());
-            // Equipment will be listening on port 7500.
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7500);
-            udpSocket.send(packet);
-            udpSocket.close();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        String message = Integer.toString(equipmentId);
+        UdpClient.broadcastMessage(message);
     }
     
     // Register the player: show message and add codename to the appropriate table.
@@ -431,17 +432,22 @@ public class PlayerEntry extends JFrame implements ActionListener {
         // Add the codename to the respective table, if there's room.
         if (team.equals("red")) {
             if (leftModel.getRowCount() < 20) {
-                leftModel.addRow(new Object[]{codename});
+                leftModel.addRow(new Object[]{codename, equipmentId});
             } else {
                 JOptionPane.showMessageDialog(playerEntryDialog, "Red team table is full.");
+                return;
             }
         } else { // team is "green"
             if (rightModel.getRowCount() < 20) {
-                rightModel.addRow(new Object[]{codename});
+                rightModel.addRow(new Object[]{codename, equipmentId});
             } else {
                 JOptionPane.showMessageDialog(playerEntryDialog, "Green team table is full.");
+                return;
             }
         }
+
+        // Add equipmentId codename to HashMap
+        equipmentIdToCodename.put(Integer.toString(equipmentId), codename);
     }
     
     // ActionListener method for the button in the dialog.
