@@ -7,9 +7,8 @@ import javax.imageio.ImageIO;
 import java.util.Timer;
 import java.util.TimerTask;
 
-
 public class Countdown extends JWindow {
-    static int interval = 30;
+    static int interval = 1;
     static BufferedImage number;
     static int oscilator;
     private BufferedImage image;
@@ -76,6 +75,7 @@ public class Countdown extends JWindow {
 
                 if (interval == 0) {
                     timer.cancel(); // Close countdown screen
+                    UdpClient.broadcastMessage("202");
                     dispose();
 
                     if (callback != null)
@@ -83,7 +83,11 @@ public class Countdown extends JWindow {
                         callback.run();
                     }
                 }
-                interval--;
+                if (interval != 0) {
+                    interval--;
+                } else {
+                    interval = 30;
+                }
             }
         }, 1000, 1000); // Display for 1 second      
     }
