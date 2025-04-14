@@ -1,6 +1,8 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
+import javax.swing.table.TableRowSorter;
+import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -9,18 +11,30 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class PlayerAction extends JFrame {
     static int minutes = 6;
     static int seconds = 0;
 
-    Timer gameTimer = new Timer();
+    java.util.Timer gameTimer = new Timer();
     String udpMessage;
     private JTextArea eventLog;
 
     DefaultTableModel redTableModel;
     DefaultTableModel greenTableModel;
     private HashMap<String, String> equipmentIdToCodename;
+
+    private JTable redTable;
+    private JTable greenTable;
+
+    private TableRowSorter<DefaultTableModel> redSorter;
+    private TableRowSorter<DefaultTableModel> greenSorter;
+
+    javax.swing.Timer flashTimer;
+    private int redFlashingRow;
+    private int greenFlashingRow;
+    private boolean flashing = false;
 
     /**
      * Constructor that accepts the red and green team table models
@@ -33,8 +47,8 @@ public class PlayerAction extends JFrame {
         this.equipmentIdToCodename = new HashMap<String, String>(equipmentIdToCodename);
 
         // Add B column as the first column
-        insertColumnAtFront(redTableModel, "Base");
-        insertColumnAtFront(greenTableModel, "Base");
+        insertColumnAtFront(redTableModel, "Has Hit Base");
+        insertColumnAtFront(greenTableModel, "");
 
         // Adds score column to table models
         redTableModel.addColumn("Score");
@@ -48,11 +62,10 @@ public class PlayerAction extends JFrame {
         // Create the left panel (dark red) with a centered table
         JPanel leftPanel = new JPanel(new GridBagLayout());
         leftPanel.setBackground(new Color(139, 0, 0)); // Dark red
-        JTable redTable = new JTable(redTableModel);
-        JScrollPane redScrollPane = new JScrollPane(redTable);
+        this.redTable = new JTable(redTableModel);
+        JScrollPane redScrollPane = new JScrollPane(this.redTable);
         redScrollPane.setPreferredSize(new Dimension(400, 300)); // Adjust as needed
         leftPanel.add(redScrollPane);
-
 
         // Middle Panel (Message + Timer + Event log)
         JPanel middlePanel = new JPanel(new GridBagLayout());
@@ -81,14 +94,28 @@ public class PlayerAction extends JFrame {
         // Create the right panel (dark green) with a centered table
         JPanel rightPanel = new JPanel(new GridBagLayout());
         rightPanel.setBackground(new Color(0, 100, 0)); // Dark green
-        JTable greenTable = new JTable(greenTableModel);
-        JScrollPane greenScrollPane = new JScrollPane(greenTable);
+        this.greenTable = new JTable(greenTableModel);
+        JScrollPane greenScrollPane = new JScrollPane(this.greenTable);
         greenScrollPane.setPreferredSize(new Dimension(400, 300)); // Adjust as needed
         rightPanel.add(greenScrollPane);
 
+        // redTable sorter
+        this.redSorter = new TableRowSorter<>(redTableModel);
+        redTable.setRowSorter(redSorter);
+        sortByScore(redSorter, redTableModel);
+
+        // greenTable sorter
+        this.greenSorter = new TableRowSorter<>(greenTableModel);
+        greenTable.setRowSorter(greenSorter);
+        sortByScore(greenSorter, greenTableModel);
+
+        // Flash renderers
+        redTable.setDefaultRenderer(Object.class, new FlashRenderer());
+        greenTable.setDefaultRenderer(Object.class, new FlashRenderer());
+
         // Hide equipment ID tables
-        hideColumn(redTable, 1);
-        hideColumn(greenTable, 1);
+        hideColumn(this.redTable, 2);
+        hideColumn(this.greenTable, 2);
 
         // Add panels to the frame
         add(leftPanel);
@@ -104,6 +131,9 @@ public class PlayerAction extends JFrame {
 
         // Start game timer
         startTimer(timeRemaining);
+
+        // Start flash renderer
+        startFlashing();
     }
 
     private void startTimer(JLabel timeRemaining) {
@@ -208,7 +238,7 @@ public class PlayerAction extends JFrame {
                                 points = 10;
                             }
 
-                            // If player hit base, add "B - " to beginning of name in side panel
+                            // If player hit base, add "B" to the leftmost column
                             if((equipmentIDs[1].equals("43") || equipmentIDs[1].equals("53")) && !friendlyFire)
                             {
                                 // Call markBaseHit on each team
@@ -296,8 +326,21 @@ public class PlayerAction extends JFrame {
                 }
                 // Update redTableModel to match team
                 model.setDataVector(team, columnNames);
+                
                 // Repaint redTableModel in sidebar
-                model.fireTableDataChanged(); 
+                model.fireTableDataChanged();
+
+                // Re-hide equipment id columns
+                if (model == redTableModel)
+                {
+                    hideColumn(redTable, 2);
+                    sortByScore(redSorter, redTableModel);
+                } else if (model == greenTableModel) 
+                {
+                    hideColumn(greenTable, 2);
+                    sortByScore(greenSorter, greenTableModel);
+                } 
+
                 break;
             }
         }
@@ -387,4 +430,97 @@ public class PlayerAction extends JFrame {
 
         model.setDataVector(data, columnNames);
     }
+
+    private void sortByScore(TableRowSorter<DefaultTableModel> sorter, DefaultTableModel model) 
+    {
+        int scoreColIndex = model.findColumn("Score");
+        if (scoreColIndex != -1) {
+            sorter.setComparator(scoreColIndex, (o1, o2) -> {
+                Integer i1 = o1 == null ? 0 : Integer.parseInt(o1.toString());
+                Integer i2 = o2 == null ? 0 : Integer.parseInt(o2.toString());
+                return i1.compareTo(i2); // controls ordering
+            });
+
+            // Apply descending sort on the score column
+            sorter.setSortKeys(java.util.List.of(new RowSorter.SortKey(scoreColIndex, SortOrder.DESCENDING)));
+            sorter.sort();
+        }
+    }
+
+    private class FlashRenderer extends DefaultTableCellRenderer {
+        private Color flashColor;
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) 
+        {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+            int modelRow = table.convertRowIndexToModel(row);
+
+            if ((table == redTable && modelRow == redFlashingRow) || (table == greenTable && modelRow == greenFlashingRow)) 
+            {
+                if (flashing) {
+                    if (table == redTable)
+                    {
+                        flashColor = Color.RED;
+                    }
+                    else // table == greenTable
+                    {
+                        flashColor = Color.GREEN;
+                    }
+                    c.setBackground(flashColor);
+                } else {
+                    c.setBackground(Color.WHITE);
+                }
+            } 
+            else 
+            {
+                c.setBackground(Color.WHITE);
+            }
+
+            return c;
+        }
+    }
+
+    // Finds which player currently has the highest score and sets their row to be blinking
+    private void updateFlashingRow()
+    {
+        int highestScore = Integer.MIN_VALUE;
+        redFlashingRow = -1;
+        greenFlashingRow = -1;
+
+        for (int i = 0; i < redTableModel.getRowCount(); i++) {
+            Object scoreObj = redTableModel.getValueAt(i, redTableModel.findColumn("Score"));
+            int score = (scoreObj == null ? 0 : Integer.parseInt(scoreObj.toString()));
+            if (score > highestScore) 
+            {
+                highestScore = score;
+                redFlashingRow = i;
+                greenFlashingRow = -1; 
+            }
+        }
+
+        for (int i = 0; i < greenTableModel.getRowCount(); i++) {
+            Object scoreObj = greenTableModel.getValueAt(i, greenTableModel.findColumn("Score"));
+            int score = (scoreObj == null ? 0 : Integer.parseInt(scoreObj.toString()));
+            if (score > highestScore) 
+            {
+                highestScore = score;
+                greenFlashingRow = i;
+                redFlashingRow = -1;
+            }
+        }
+    }
+
+    private void startFlashing()
+    {
+        flashTimer = new javax.swing.Timer(500, e -> {
+            updateFlashingRow(); // Recalculate top player
+            flashing = !flashing; // Toggle blink on/off
+            redTable.repaint();
+            greenTable.repaint();
+        });
+        flashTimer.start();
+    }
+
 }
