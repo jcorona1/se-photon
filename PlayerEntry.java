@@ -391,6 +391,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
 
         // Clear equipmentIdToCodename
         equipmentIdToCodename.clear();
+
         // Displays message confirming player entries cleared
         JOptionPane.showMessageDialog(clearedPlayerEntriesDialog, "Player Entries Cleared!");
         // Removes dialog

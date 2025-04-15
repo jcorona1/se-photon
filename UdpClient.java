@@ -18,9 +18,8 @@ public class UdpClient {
 
     public static void broadcastMessage(String message) {
         try {
-	    // Create a DatagramSocket
             DatagramSocket socket = new DatagramSocket();
-            socket.setBroadcast(true); // Enable broadcast
+            socket.setBroadcast(true);
 
             byte[] buffer = message.getBytes();
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(getBroadcastAddress()), port);
