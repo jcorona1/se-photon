@@ -208,6 +208,7 @@ public class PlayerAction extends JFrame {
         for (int col = 0; col < original.getColumnCount(); col++) {
             duplicate.addColumn(original.getColumnName(col));
         }
+      
         // Copy all rows
         for (int row = 0; row < original.getRowCount(); row++) {
             Object[] rowData = new Object[original.getColumnCount()];
