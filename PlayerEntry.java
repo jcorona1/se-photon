@@ -3,9 +3,6 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-//import java.net.DatagramPacket;
-//import java.net.DatagramSocket;
-//import java.net.InetAddress;
 import java.sql.*;
 import java.util.regex.*;
 import java.util.HashMap;
@@ -394,7 +391,6 @@ public class PlayerEntry extends JFrame implements ActionListener {
 
         // Clear equipmentIdToCodename
         equipmentIdToCodename.clear();
-
         // Displays message confirming player entries cleared
         JOptionPane.showMessageDialog(clearedPlayerEntriesDialog, "Player Entries Cleared!");
         // Removes dialog

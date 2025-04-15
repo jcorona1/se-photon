@@ -8,7 +8,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class Countdown extends JWindow {
-    static int interval = 1;
+    static int interval = 30;
     static BufferedImage number;
     static int oscilator;
     private BufferedImage image;
