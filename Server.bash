@@ -1,4 +1,5 @@
 #!/bin/bash
 set -e
-javac udpServer.java
-java udpServer
+
+javac UdpServer.java
+java UdpServer

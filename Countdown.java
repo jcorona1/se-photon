@@ -6,10 +6,6 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-
 
 public class Countdown extends JWindow {
     static int interval = 30;

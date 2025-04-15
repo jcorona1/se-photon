@@ -209,7 +209,7 @@ public class PlayerAction extends JFrame {
                             // Get data from models
                             Vector<Vector> redTeam = redTableModel.getDataVector();
                             Vector<Vector> greenTeam = greenTableModel.getDataVector();
-
+                          
                             // Determine what teams the hitter and victim are on
                             boolean hitterOnRed = isOnTeam(hitter, redTeam);
                             boolean victimOnRed;
@@ -340,7 +340,6 @@ public class PlayerAction extends JFrame {
                     hideColumn(greenTable, 2);
                     sortByScore(greenSorter, greenTableModel);
                 } 
-
                 break;
             }
         }
@@ -374,7 +373,6 @@ public class PlayerAction extends JFrame {
                 model.setDataVector(team, columnNames);
                 // Call updateScore on scoring team
                 updateScore(hitter, team, model, 100);
-
                 break;
             }
         }
@@ -522,5 +520,3 @@ public class PlayerAction extends JFrame {
         });
         flashTimer.start();
     }
-
-}
