@@ -134,4 +134,3 @@ Specification-Title: JDBC
 Specification-Vendor: Oracle Corporation
 Specification-Version: 4.2
 Tool: Bnd-7.1.0.202411251545
-

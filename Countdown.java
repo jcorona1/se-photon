@@ -6,10 +6,6 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-
 
 public class Countdown extends JWindow {
     static int interval = 30;
@@ -79,19 +75,7 @@ public class Countdown extends JWindow {
 
                 if (interval == 0) {
                     timer.cancel(); // Close countdown screen
-                    try {
-                        DatagramSocket udpSocket = new DatagramSocket();
-                        udpSocket.setBroadcast(true);
-                        String message = "202";
-                        byte[] buffer = message.getBytes();
-                        InetAddress broadcastAddress = InetAddress.getByName(UdpClient.getBroadcastAddress());
-                        // Equipment will be listening on port 7500.
-                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, 7500);
-                        udpSocket.send(packet);
-                        udpSocket.close();
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    }
+                    UdpClient.broadcastMessage("202");
                     dispose();
 
                     if (callback != null)

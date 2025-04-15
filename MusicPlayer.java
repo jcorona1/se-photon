@@ -50,6 +50,6 @@ public class MusicPlayer {
             public void run() {
                 player.playRandom();
             }
-        }, 14000); // 14 seconds delay (timed to start when announcer says "BEGIN!")
+        }, 15000); // 15 seconds delay (timed to start when announcer says "BEGIN!")
     }
 }
