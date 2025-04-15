@@ -164,6 +164,7 @@ public class PlayerEntry extends JFrame implements ActionListener {
         getRootPane().getActionMap().put("startGame", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                MusicPlayer.startMusicWithDelay();
                 startGame();
             }
         });
