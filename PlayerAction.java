@@ -520,3 +520,4 @@ public class PlayerAction extends JFrame {
         });
         flashTimer.start();
     }
+}
